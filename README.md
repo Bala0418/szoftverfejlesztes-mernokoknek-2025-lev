@@ -1,0 +1,1 @@
+# szoftverfejlesztes-mernokoknek-2025-lev

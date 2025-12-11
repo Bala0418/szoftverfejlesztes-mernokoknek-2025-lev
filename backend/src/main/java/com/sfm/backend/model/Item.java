@@ -1,8 +1,18 @@
 package com.sfm.backend.model;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "items")
 public class Item {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String name;
+
+    @Column
     private String description;
 
     public Item() {}

@@ -1,67 +1,157 @@
-import React from 'react'
-
-const rooms = [
-  {
-    name: 'Gépterem 101',
-    building: 'Informatikai épület – 1. emelet',
-    capacity: 24,
-    equipment: ['Gépek: 24 db', 'Projektor'],
-    status: 'Szabad',
-    nextSlot: '09:00–10:30'
-  },
-  {
-    name: 'Tárgyaló 2',
-    building: 'Főépület – földszint',
-    capacity: 6,
-    equipment: ['Hangszigetelt', 'Online meeting'],
-    status: 'Foglalt 09:00–10:30',
-    nextSlot: '11:00–12:00'
-  },
-  {
-    name: 'Konferenciaterem A',
-    building: 'Konferencia központ – 2. emelet',
-    capacity: 40,
-    equipment: ['Profi hangosítás', 'Nagy vetítő'],
-    status: 'Következő: 10:00–12:00'
-  },
-  {
-    name: 'Csendes szoba 3',
-    building: 'B épület – 3. emelet',
-    capacity: 6,
-    equipment: ['Laptopbarát', 'Hangszigetelt'],
-    status: 'Foglalható egész nap 08:00–18:00'
-  }
-]
+import React, { useEffect, useState } from 'react'
+import { searchRooms, createBooking } from '../services/bookingService'
+import BookingModal from '../components/BookingModal'
+import Snackbar from '../components/Snackbar'
 
 export default function BookingPage() {
+  const today = new Date().toISOString().split('T')[0]
+  
+  const [rooms, setRooms] = useState([])
+  const [availableEquipment, setAvailableEquipment] = useState([])
+  const [filters, setFilters] = useState({
+    date: today,
+    startTime: '09:00',
+    endTime: '11:00',
+    capacity: 1,
+    equipment: []
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [searched, setSearched] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState(null)
+  const [snackbar, setSnackbar] = useState(null)
+
+  useEffect(() => {
+    // Load rooms without filters on initial load
+    const fetchInitialRooms = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await searchRooms({}) // Empty filters
+        setRooms(data)
+        setSearched(true)
+        
+        // Extract unique features from all rooms
+        const equipmentSet = new Set()
+        data.forEach(room => {
+          if (room.features && Array.isArray(room.features)) {
+            room.features.forEach(feature => equipmentSet.add(feature))
+          }
+        })
+        setAvailableEquipment(Array.from(equipmentSet).sort())
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchInitialRooms()
+  }, [])
+
+  const fetchRooms = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await searchRooms(filters)
+      setRooms(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFilterChange = e => {
+    const { name, value, type, checked } = e.target
+    if (type === 'checkbox') {
+      setFilters(prev => ({
+        ...prev,
+        equipment: checked
+          ? [...prev.equipment, value]
+          : prev.equipment.filter(eq => eq !== value)
+      }))
+    } else {
+      setFilters(prev => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleSearch = () => {
+    setSearched(true)
+    fetchRooms()
+  }
+
+  const handleOpenBookingModal = room => {
+    setSelectedRoom(room)
+  }
+
+  const handleCloseBookingModal = () => {
+    setSelectedRoom(null)
+  }
+
+  const handleBook = async ({ date, startTime, endTime, room }) => {
+    const bookingData = {
+      roomCode: room.code || room.name || room.id,
+      startTime: `${date}T${startTime}:00`,
+      endTime: `${date}T${endTime}:00`,
+      title: `Foglalás - ${room.name}`
+    }
+    await createBooking(bookingData)
+    
+    // Format the date and time for display
+    const formattedDate = new Date(`${date}T${startTime}`).toLocaleString('hu-HU', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    
+    setSnackbar(`A foglalás sikeres volt. Foglalás kezdete a ${room.name} teremben: ${formattedDate}`)
+    
+    if (searched) {
+      fetchRooms()
+    }
+  }
   return (
     <section className="booking-layout">
       <aside className="panel filters">
         <h3>Szűrők</h3>
         <div className="form-group">
           <label>Dátum</label>
-          <input type="date" />
+          <input type="date" name="date" value={filters.date} onChange={handleFilterChange} />
         </div>
         <div className="form-group">
           <label>Idősáv</label>
           <div className="inline-inputs">
-            <input type="time" defaultValue="09:00" />
+            <input type="time" name="startTime" value={filters.startTime} onChange={handleFilterChange} />
             <span>–</span>
-            <input type="time" defaultValue="11:00" />
+            <input type="time" name="endTime" value={filters.endTime} onChange={handleFilterChange} />
           </div>
         </div>
         <div className="form-group">
           <label>Férőhely</label>
-          <input type="number" min="1" defaultValue="1" />
+          <input type="number" name="capacity" min="1" value={filters.capacity} onChange={handleFilterChange} />
           <p className="hint">Teremfüggő létszám (2–30)</p>
         </div>
         <div className="form-group">
           <label>Felszereltség</label>
-          <label className="check"><input type="checkbox" /> Projektor</label>
-          <label className="check"><input type="checkbox" /> Hangszigetelés</label>
-          <label className="check"><input type="checkbox" /> Online meeting eszközök</label>
+          {availableEquipment.length === 0 ? (
+            <p className="hint">Nincs elérhető felszereltség</p>
+          ) : (
+            availableEquipment.map(eq => (
+              <label key={eq} className="check">
+                <input 
+                  type="checkbox" 
+                  value={eq} 
+                  checked={filters.equipment.includes(eq)}
+                  onChange={handleFilterChange} 
+                /> 
+                {eq}
+              </label>
+            ))
+          )}
         </div>
-        <button type="button" className="secondary">Keresés</button>
+        <button type="button" className="secondary" onClick={handleSearch} disabled={loading}>Keresés</button>
       </aside>
 
       <div className="booking-content">
@@ -76,9 +166,22 @@ export default function BookingPage() {
           </div>
         </div>
 
+        {loading && <p>Betöltés...</p>}
+        {!loading && searched && rooms.length === 0 && (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+            <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Nincs találat</p>
+            <p>A kiválasztott szűrők alapján nem található elérhető terem.</p>
+          </div>
+        )}
+        {!loading && !searched && (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+            <p>Válassz szűrőket és nyomd meg a Keresés gombot a termek megjelenítéséhez.</p>
+          </div>
+        )}
+
         <div className="room-grid">
           {rooms.map(room => (
-            <article key={room.name} className="room-card">
+            <article key={room.id || room.name} className="room-card">
               <div className="room-head">
                 <div>
                   <h3>{room.name}</h3>
@@ -88,7 +191,7 @@ export default function BookingPage() {
               </div>
               <p className="muted">Férőhely: {room.capacity} fő</p>
               <div className="tag-row">
-                {room.equipment.map(tag => (
+                {room.equipment?.map(tag => (
                   <span key={tag} className="pill pill-light">{tag}</span>
                 ))}
               </div>
@@ -97,12 +200,29 @@ export default function BookingPage() {
                   <small className="muted">Következő időpont</small>
                   <div className="strong-text">{room.nextSlot || '—'}</div>
                 </div>
-                <button type="button" className="primary">Foglalás (wireframe)</button>
+                <button type="button" className="primary" onClick={() => handleOpenBookingModal(room)}>Foglalás</button>
               </div>
             </article>
           ))}
         </div>
       </div>
+
+      {selectedRoom && (
+        <BookingModal
+          room={selectedRoom}
+          onClose={handleCloseBookingModal}
+          onBook={handleBook}
+        />
+      )}
+      
+      {snackbar && (
+        <Snackbar
+          message={snackbar}
+          onClose={() => setSnackbar(null)}
+          type="success"
+          duration={15000}
+        />
+      )}
     </section>
   )
 }

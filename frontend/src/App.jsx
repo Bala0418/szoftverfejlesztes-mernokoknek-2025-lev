@@ -22,18 +22,36 @@ function RequireAuth({ isAuthenticated, children }) {
 }
 
 export default function App() {
-  const [auth, setAuth] = useState({ isAuthenticated: false, user: null })
+  const [auth, setAuth] = useState(() => {
+    // Try to restore user from localStorage on mount
+    const token = localStorage.getItem('authToken')
+    const savedUser = localStorage.getItem('user')
+    if (token && savedUser) {
+      try {
+        const user = JSON.parse(savedUser)
+        return { isAuthenticated: true, user }
+      } catch (e) {
+        localStorage.removeItem('user')
+      }
+    }
+    return { isAuthenticated: false, user: null }
+  })
 
-  const handleLogin = () => {
-    setAuth({ isAuthenticated: true, user: mockUser })
+  const handleLogin = (user) => {
+    localStorage.setItem('user', JSON.stringify(user))
+    setAuth({ isAuthenticated: true, user })
   }
 
   const handleLogout = () => {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
     setAuth({ isAuthenticated: false, user: null })
   }
 
   const handleProfileSave = updates => {
-    setAuth(prev => ({ ...prev, user: { ...prev.user, ...updates } }))
+    const updatedUser = { ...auth.user, ...updates }
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+    setAuth(prev => ({ ...prev, user: updatedUser }))
   }
 
   const navModel = useMemo(

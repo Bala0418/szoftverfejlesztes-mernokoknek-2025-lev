@@ -20,6 +20,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"}, allowCredentials = "true")
 public class AuthController {
 
     private final UserService userService;
@@ -54,10 +55,14 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = LoginDto.class))) @RequestBody LoginDto dto) {
         var userOpt = userService.login(dto);
         if (userOpt.isPresent()) {
-            String token = jwtUtil.generateToken(userOpt.get().getUsername());
-            Map<String, String> resp = new HashMap<>();
+            var user = userOpt.get();
+            String token = jwtUtil.generateToken(user.getUsername());
+            Map<String, Object> resp = new HashMap<>();
             resp.put("token", token);
             resp.put("tokenType", "Bearer");
+            resp.put("username", user.getUsername());
+            resp.put("email", user.getEmail());
+            resp.put("name", user.getFullName());
             return ResponseEntity.ok(resp);
         } else {
             Map<String, String> err = new HashMap<>();

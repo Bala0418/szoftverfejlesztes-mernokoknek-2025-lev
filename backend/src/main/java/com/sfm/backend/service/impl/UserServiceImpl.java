@@ -58,4 +58,42 @@ public class UserServiceImpl implements UserService {
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
+
+    @Override
+    public User modifyContactInfo(String username, com.sfm.backend.dto.ModifyContactInfoDto dto) throws IllegalArgumentException {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("A felhasználó nem található."));
+
+        // Verify current password
+        if (!PasswordUtil.matches(dto.getCurrentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("A jelenlegi jelszó helytelen.");
+        }
+
+        // Update full name if provided
+        if (dto.getFullName() != null && !dto.getFullName().isBlank()) {
+            user.setFullName(dto.getFullName());
+        }
+
+        // Update email if provided and not already taken by another user
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            if (!dto.getEmail().equals(user.getEmail())) {
+                Optional<User> existingUser = userRepository.findByEmail(dto.getEmail());
+                if (existingUser.isPresent() && !existingUser.get().getId().equals(user.getId())) {
+                    throw new IllegalArgumentException("Az email cím már használatban van.");
+                }
+                user.setEmail(dto.getEmail());
+            }
+        }
+
+        // Update password if provided
+        if (dto.getNewPassword() != null && !dto.getNewPassword().isBlank()) {
+            if (dto.getNewPassword().equals(username)) {
+                throw new IllegalArgumentException("A jelszó nem egyezhet meg a felhasználónévvel.");
+            }
+            String hashedNewPassword = PasswordUtil.encode(dto.getNewPassword());
+            user.setPasswordHash(hashedNewPassword);
+        }
+
+        return userRepository.save(user);
+    }
 }

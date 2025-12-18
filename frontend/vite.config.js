@@ -1,23 +1,10 @@
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// Simple Vite config to ensure requests to `/` serve `index.html` and
-// to fix the dev server port so the URL is predictable.
 export default defineConfig({
+  plugins: [react()],
   server: {
     host: true,
     port: 5174
-  },
-  plugins: [
-    {
-      name: 'root-rewrite',
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          if (req.url === '/' || req.url === '') {
-            req.url = '/index.html'
-          }
-          next()
-        })
-      }
-    }
-  ]
+  }
 })

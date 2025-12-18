@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Hibaválaszok egységes formátuma")
 public class ErrorResponse {
 
-    @Schema(description = "Rövid hiba címke", example = "Érvényességi hiba")
+    @Schema(description = "Rövid hiba címke", example = "Validációs hiba")
     private String errorMessage;
 
     @Schema(description = "Részletes üzenet: lehet string vagy mezőspecifikus objektum (map)")

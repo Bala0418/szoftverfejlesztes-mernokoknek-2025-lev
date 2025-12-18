@@ -29,7 +29,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   HttpStatusCode status,
                                                                   WebRequest request) {
         Map<String, Object> body = new HashMap<>();
-        body.put("errorMessage", "Érvényességi hiba");
+        body.put("message", "Validációs hiba");
 
         Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors()
                 .stream()
@@ -39,14 +39,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         (existing, replacement) -> existing
                 ));
 
-        body.put("message", fieldErrors);
+        body.put("errors", fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     @Override
     protected ResponseEntity<Object> handleBindException(BindException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
-        body.put("errorMessage", "Érvényességi hiba");
+        body.put("errorMessage", "Validációs hiba");
         Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors()
                 .stream()
                 .collect(Collectors.toMap(
@@ -72,7 +72,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     protected ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException ex) {
         Map<String, Object> body = new HashMap<>();
-        body.put("errorMessage", "Érvényességi hiba");
+        body.put("errorMessage", "Validációs hiba");
 
         Map<String, String> violations = ex.getConstraintViolations()
                 .stream()

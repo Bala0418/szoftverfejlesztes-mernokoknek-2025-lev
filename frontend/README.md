@@ -1,25 +1,41 @@
 Teremfoglalás frontend
 
-Ez a mappa egy egyszerű React (Vite) alapú frontendet tartalmaz.
+Ez a mappa egy React (Vite) alapú frontendet tartalmaz, amely a Spring Boot backend-hez csatlakozik.
 
-Futtatás (Windows PowerShell):
+## Futtatás (Windows PowerShell)
 
 ```powershell
 cd frontend
+```
+
+```javascript
 npm install
+```
+
+```javascript
 npm run dev
 ```
 
-A böngészőben a megadott `localhost` címen jelenik meg a "Teremfoglalás projekt" cím.
- 
-Fő oldalak (wireframe):
-- Főoldal: rövid marketing leírás.
-- Bejelentkezés: felhasználónév/email + jelszó mezők, helyfoglaló hibák, demo bejelentkezés gomb (user / user).
-- Regisztráció: felhasználónév, email, név, jelszó, jelszó ismét; helyfoglaló hibák.
-- Teremfoglalás: kártyanézet mint a csatolt minta, szűrők oldalt; demo gombok.
-- Profil: adatmódosítás form, aktív és legutóbbi foglalások listája.
+A böngésző automatikusan megnyílik `http://localhost:5174/` címen.
 
-Navigáció és jogosultság:
-- Vendég: Főoldal, Bejelentkezés, Regisztráció.
-- Bejelentkezve: Főoldal, Teremfoglalás, Profil, Kijelentkezés.
-- A bejelentkezés demo mód (backend nélkül) a "Bejelentkezés" oldalon található gombbal történik.
+## Backend kapcsolat
+
+A frontend a `http://localhost:8080` címen futó backend-et hívja.
+- Környezeti változó: `VITE_API_BASE_URL` (lásd `.env.example`)
+- Backend CORS konfiguráció beállítva: `localhost:5173` és `localhost:5174`
+
+**Fontos**: Előbb indítsd el a backend-et (`backend/` mappa), majd a frontend-et!
+
+## Fő oldalak
+
+- **Főoldal**: marketing leírás
+- **Bejelentkezés**: felhasználónév/email + jelszó (backend validáció)
+- **Regisztráció**: felhasználónév, email, név, jelszó, jelszó megerősítés (auto-login sikeres regisztráció után)
+- **Teremfoglalás**: szűrők + kártyanézet (backend adatokkal)
+- **Profil**: adatmódosítás, aktív/korábbi foglalások (backend adatokkal)
+
+## Navigáció és jogosultság
+
+- **Vendég**: Főoldal, Bejelentkezés, Regisztráció
+- **Bejelentkezve**: Főoldal, Teremfoglalás, Profil, Kijelentkezés
+- JWT token tárolás: `localStorage.authToken`
